@@ -1,0 +1,28 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=development \
+    NEXT_TELEMETRY_DISABLED=1
+
+# Manifiestos de todos los workspaces: npm ci los necesita para resolver el
+# arbol de dependencias del monorepo.
+COPY package.json package-lock.json tsconfig.json ./
+COPY packages/shared/package.json ./packages/shared/
+COPY services/simulator/package.json ./services/simulator/
+COPY services/projector/package.json ./services/projector/
+COPY services/notifications/package.json ./services/notifications/
+COPY services/rescheduler/package.json ./services/rescheduler/
+COPY services/sla-monitor/package.json ./services/sla-monitor/
+COPY services/analytics/package.json ./services/analytics/
+COPY apps/web/package.json ./apps/web/
+
+RUN npm ci --no-audit --no-fund
+
+# Codigo fuente de los servicios (se ejecutan con tsx, sin build).
+COPY packages/shared ./packages/shared
+COPY services ./services
+COPY tsconfig.json ./
+
+# El comando concreto lo define docker-compose para cada servicio.
+CMD ["npm", "run", "start", "-w", "@rutasur/simulator"]

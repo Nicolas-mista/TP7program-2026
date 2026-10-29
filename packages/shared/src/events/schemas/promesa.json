@@ -1,0 +1,26 @@
+{
+  "$id": "promesa",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["eventId", "shipmentId", "tipo", "ocurridoEn", "secuencia", "version", "promesa"],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1 },
+    "shipmentId": { "type": "string", "minLength": 1 },
+    "tipo": { "const": "PROMESA" },
+    "ocurridoEn": { "type": "string", "format": "date-time" },
+    "secuencia": { "type": "integer", "minimum": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "hubId": { "type": ["string", "null"] },
+    "zonaId": { "type": ["string", "null"] },
+    "repartidorId": { "type": ["string", "null"] },
+    "promesa": {
+      "type": "object",
+      "required": ["venceEn", "franja", "compromiso"],
+      "properties": {
+        "venceEn": { "type": "string", "format": "date-time" },
+        "franja": { "enum": ["MAÑANA", "TARDE", "NOCHE"] },
+        "compromiso": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

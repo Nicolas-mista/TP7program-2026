@@ -1,0 +1,9 @@
+# Los scripts que corren dentro de contenedores Linux necesitan LF, incluso
+# cuando el repositorio se clona en Windows.
+*.sh text eol=lf
+Dockerfile* text eol=lf
+*.mjs text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf

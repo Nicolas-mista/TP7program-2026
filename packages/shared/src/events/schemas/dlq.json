@@ -1,0 +1,31 @@
+{
+  "$id": "dlq",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "eventId",
+    "tipo",
+    "ocurridoEn",
+    "version",
+    "consumidor",
+    "topic",
+    "partition",
+    "offset",
+    "motivo",
+    "error",
+    "original"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1 },
+    "tipo": { "const": "EVENTO_RECHAZADO" },
+    "ocurridoEn": { "type": "string", "format": "date-time" },
+    "version": { "type": "integer", "minimum": 1 },
+    "consumidor": { "type": "string", "minLength": 1 },
+    "topic": { "type": "string", "minLength": 1 },
+    "partition": { "type": "integer", "minimum": 0 },
+    "offset": { "type": "string", "minLength": 1 },
+    "motivo": { "type": "string", "minLength": 1 },
+    "error": { "type": "string" },
+    "original": { "type": "string" }
+  }
+}

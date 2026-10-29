@@ -1,0 +1,35 @@
+{
+  "$id": "estado",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["eventId", "shipmentId", "tipo", "ocurridoEn", "secuencia", "version"],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1 },
+    "shipmentId": { "type": "string", "minLength": 1 },
+    "tipo": {
+      "enum": [
+        "CREADO",
+        "INGRESADO_HUB",
+        "CLASIFICADO",
+        "EN_REPARTO",
+        "ENTREGADO",
+        "ENTREGA_FALLIDA"
+      ]
+    },
+    "ocurridoEn": { "type": "string", "format": "date-time" },
+    "secuencia": { "type": "integer", "minimum": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "hubId": { "type": ["string", "null"] },
+    "zonaId": { "type": ["string", "null"] },
+    "repartidorId": { "type": ["string", "null"] },
+    "intento": { "type": "integer", "minimum": 1 },
+    "motivo": {
+      "enum": ["AUSENTE", "DIRECCION_INCORRECTA", "RECHAZADO", "ZONA_INACCESIBLE"]
+    }
+  },
+  "if": {
+    "properties": { "tipo": { "const": "ENTREGA_FALLIDA" } },
+    "required": ["tipo"]
+  },
+  "then": { "required": ["motivo", "intento"] }
+}

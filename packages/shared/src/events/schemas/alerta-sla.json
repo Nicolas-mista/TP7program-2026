@@ -1,0 +1,35 @@
+{
+  "$id": "alerta-sla",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "eventId",
+    "shipmentId",
+    "tipo",
+    "ocurridoEn",
+    "secuencia",
+    "version",
+    "alertaId",
+    "regla",
+    "prioridad",
+    "causa",
+    "estado",
+    "venceEn"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1 },
+    "shipmentId": { "type": "string", "minLength": 1 },
+    "tipo": { "const": "ALERTA_SLA" },
+    "ocurridoEn": { "type": "string", "format": "date-time" },
+    "secuencia": { "type": "integer", "minimum": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "hubId": { "type": ["string", "null"] },
+    "zonaId": { "type": ["string", "null"] },
+    "alertaId": { "type": "string", "minLength": 1 },
+    "regla": { "enum": ["SIN_INGRESO", "SIN_SALIDA", "FALLO_EN_DIA_LIMITE", "VENCIDO"] },
+    "prioridad": { "enum": ["CRITICA", "ALTA", "MEDIA"] },
+    "causa": { "type": "string", "minLength": 1 },
+    "estado": { "enum": ["ABIERTA", "CERRADA"] },
+    "venceEn": { "type": "string", "format": "date-time" }
+  }
+}

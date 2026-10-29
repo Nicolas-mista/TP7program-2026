@@ -1,0 +1,274 @@
+name: rutasur
+
+x-service: &service
+  image: rutasur-service:local
+  build:
+    context: .
+    dockerfile: docker/Dockerfile.service
+  restart: unless-stopped
+  env_file:
+    # Opcional: el stack arranca con los valores por defecto aunque no exista .env.
+    - path: .env
+      required: false
+  environment:
+    KAFKA_BROKERS: kafka:29092
+    MONGO_URI: mongodb://mongo:27017/rutasur?replicaSet=rs0
+    MONGO_DB: rutasur
+  depends_on:
+    kafka:
+      condition: service_healthy
+    kafka-init:
+      condition: service_completed_successfully
+    mongo-init:
+      condition: service_completed_successfully
+
+services:
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: rutasur-kafka
+    restart: unless-stopped
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+      # La imagen usa /tmp por defecto; el volumen persistente vive en /var/lib/kafka/data.
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:29092 >/dev/null 2>&1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 24
+      start_period: 20s
+
+  kafka-init:
+    image: apache/kafka:3.9.0
+    container_name: rutasur-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    volumes:
+      - ./docker/kafka-init/topics.sh:/topics.sh:ro
+    entrypoint: ["/bin/sh", "/topics.sh"]
+    restart: "no"
+
+  mongo:
+    image: mongo:7
+    container_name: rutasur-mongo
+    restart: unless-stopped
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--quiet"]
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mongosh --quiet --eval \"db.adminCommand('ping').ok\" | grep -q 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+      start_period: 10s
+
+  mongo-init:
+    image: mongo:7
+    container_name: rutasur-mongo-init
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ./docker/mongo-init/init-rs.js:/init-rs.js:ro
+    entrypoint: ["mongosh", "--quiet", "--host", "mongo:27017", "--file", "/init-rs.js"]
+    restart: "no"
+
+  simulator:
+    <<: *service
+    container_name: rutasur-simulator
+    command: ["npm", "run", "start", "-w", "@rutasur/simulator"]
+    ports:
+      - "4000:4000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  projector:
+    <<: *service
+    container_name: rutasur-projector
+    command: ["npm", "run", "start", "-w", "@rutasur/projector"]
+    ports:
+      - "4002:4002"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  notifications:
+    <<: *service
+    container_name: rutasur-notifications
+    command: ["npm", "run", "start", "-w", "@rutasur/notifications"]
+    ports:
+      - "4003:4003"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4003/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  rescheduler:
+    <<: *service
+    container_name: rutasur-rescheduler
+    command: ["npm", "run", "start", "-w", "@rutasur/rescheduler"]
+    ports:
+      - "4004:4004"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4004/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  sla-monitor:
+    <<: *service
+    container_name: rutasur-sla-monitor
+    command: ["npm", "run", "start", "-w", "@rutasur/sla-monitor"]
+    ports:
+      - "4005:4005"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4005/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 40s
+
+  analytics:
+    <<: *service
+    container_name: rutasur-analytics
+    command: ["npm", "run", "start", "-w", "@rutasur/analytics"]
+    ports:
+      - "4001:4001"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
+
+  web:
+    image: rutasur-web:local
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+    container_name: rutasur-web
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      MONGO_URI: mongodb://mongo:27017/rutasur?replicaSet=rs0
+      MONGO_DB: rutasur
+      SIMULATOR_URL: http://simulator:4000
+      ANALYTICS_URL: http://analytics:4001
+      PROJECTOR_URL: http://projector:4002
+      NOTIFICATIONS_URL: http://notifications:4003
+      RESCHEDULER_URL: http://rescheduler:4004
+      MONITOR_URL: http://sla-monitor:4005
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "3000:3000"
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+      simulator:
+        condition: service_started
+      projector:
+        condition: service_started
+      notifications:
+        condition: service_started
+      rescheduler:
+        condition: service_started
+      sla-monitor:
+        condition: service_started
+      analytics:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+volumes:
+  kafka-data:
+  mongo-data:

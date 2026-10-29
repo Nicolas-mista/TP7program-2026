@@ -1,0 +1,38 @@
+{
+  "$id": "reprogramacion",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "eventId",
+    "shipmentId",
+    "tipo",
+    "ocurridoEn",
+    "secuencia",
+    "version",
+    "intento",
+    "decision",
+    "motivo",
+    "detalle",
+    "origenEventId"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1 },
+    "shipmentId": { "type": "string", "minLength": 1 },
+    "tipo": { "const": "REPROGRAMACION" },
+    "ocurridoEn": { "type": "string", "format": "date-time" },
+    "secuencia": { "type": "integer", "minimum": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "hubId": { "type": ["string", "null"] },
+    "zonaId": { "type": ["string", "null"] },
+    "repartidorId": { "type": ["string", "null"] },
+    "intento": { "type": "integer", "minimum": 1 },
+    "decision": { "enum": ["REINTENTO", "RETENIDO", "DEVOLUCION"] },
+    "motivo": {
+      "enum": ["AUSENTE", "DIRECCION_INCORRECTA", "RECHAZADO", "ZONA_INACCESIBLE"]
+    },
+    "fechaProgramada": { "type": ["string", "null"], "format": "date-time" },
+    "franja": { "enum": ["MAÑANA", "TARDE", "NOCHE", null] },
+    "detalle": { "type": "string" },
+    "origenEventId": { "type": "string", "minLength": 1 }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "rutasur",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "RutaSur - plataforma de seguimiento de envios en tiempo real orientada a eventos (TP7 Programacion Avanzada 2026)",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "up": "docker compose up -d --build",
+    "down": "docker compose down",
+    "restart": "docker compose restart",
+    "logs": "docker compose logs -f --tail=120",
+    "infra": "docker compose up -d kafka kafka-init mongo mongo-init",
+    "dev": "node scripts/dev.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build:web": "npm run build -w @rutasur/web",
+    "reset": "node scripts/reset.mjs",
+    "acceptance": "node scripts/acceptance/run.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$id": "notificacion",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "eventId",
+    "shipmentId",
+    "tipo",
+    "ocurridoEn",
+    "secuencia",
+    "version",
+    "notificacionId",
+    "categoria",
+    "canal",
+    "destinatario",
+    "mensaje",
+    "origenEventId"
+  ],
+  "properties": {
+    "eventId": { "type": "string", "minLength": 1 },
+    "shipmentId": { "type": "string", "minLength": 1 },
+    "tipo": { "const": "NOTIFICACION_ENVIADA" },
+    "ocurridoEn": { "type": "string", "format": "date-time" },
+    "secuencia": { "type": "integer", "minimum": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "notificacionId": { "type": "string", "minLength": 1 },
+    "categoria": { "enum": ["FALLO", "REPROGRAMACION", "ALERTA_SLA"] },
+    "canal": { "enum": ["SMS", "EMAIL", "INTERNO"] },
+    "destinatario": { "type": "string", "minLength": 1 },
+    "mensaje": { "type": "string", "minLength": 1 },
+    "origenEventId": { "type": "string", "minLength": 1 }
+  }
+}
