@@ -6,14 +6,17 @@ x-service: &service
     context: .
     dockerfile: docker/Dockerfile.service
   restart: unless-stopped
-  env_file:
-    # Opcional: el stack arranca con los valores por defecto aunque no exista .env.
-    - path: .env
-      required: false
   environment:
     KAFKA_BROKERS: kafka:29092
     MONGO_URI: mongodb://mongo:27017/rutasur?replicaSet=rs0
     MONGO_DB: rutasur
+    # Se pueden sobreescribir desde .env o desde el entorno del host.
+    SIM_SPEED: ${SIM_SPEED:-120}
+    SIM_RATE: ${SIM_RATE:-20}
+    SIM_SEED: ${SIM_SEED:-42}
+    SIM_START_HOUR: ${SIM_START_HOUR:-08}
+    SIM_TZ: ${SIM_TZ:-America/Argentina/Buenos_Aires}
+    LOG_LEVEL: ${LOG_LEVEL:-info}
   depends_on:
     kafka:
       condition: service_healthy
@@ -224,9 +227,6 @@ services:
       dockerfile: docker/Dockerfile.web
     container_name: rutasur-web
     restart: unless-stopped
-    env_file:
-      - path: .env
-        required: false
     environment:
       KAFKA_BROKERS: kafka:29092
       MONGO_URI: mongodb://mongo:27017/rutasur?replicaSet=rs0
@@ -237,6 +237,7 @@ services:
       NOTIFICATIONS_URL: http://notifications:4003
       RESCHEDULER_URL: http://rescheduler:4004
       MONITOR_URL: http://sla-monitor:4005
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       PORT: "3000"
       HOSTNAME: 0.0.0.0
     ports:
