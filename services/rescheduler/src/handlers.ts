@@ -49,9 +49,12 @@ export async function handleEstado(
       actualizadoEn: new Date(),
     };
 
+    // actualizadoEn se escribe en $set, asi que no puede repetirse dentro de
+    // $setOnInsert: MongoDB rechaza el update por conflicto de paths.
+    const { actualizadoEn: _actualizadoEn, ...insert } = pendiente;
     await ctx.db.collection<DocumentoPendiente>(COL.pendientes).updateOne(
       { _id: pendiente._id },
-      { $setOnInsert: pendiente, $set: { actualizadoEn: new Date() } },
+      { $setOnInsert: insert, $set: { actualizadoEn: new Date() } },
       { upsert: true },
     );
   } else {

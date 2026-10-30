@@ -36,7 +36,10 @@ services:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      # En modo combinado (broker,controller) el listener CONTROLLER también debe
+      # anunciarse con un host enrutable; si falta, Kafka toma el 0.0.0.0 de
+      # KAFKA_LISTENERS y rechaza el arranque.
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,CONTROLLER://kafka:29093,EXTERNAL://localhost:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -241,7 +244,9 @@ services:
       PORT: "3000"
       HOSTNAME: 0.0.0.0
     ports:
-      - "3000:3000"
+      # El puerto interno del contenedor es siempre 3000; el del host se puede
+      # cambiar con WEB_PORT si ya está ocupado (por ejemplo, otro proyecto).
+      - "${WEB_PORT:-3000}:3000"
     depends_on:
       mongo-init:
         condition: service_completed_successfully

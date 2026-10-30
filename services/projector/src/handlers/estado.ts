@@ -64,7 +64,8 @@ export async function handleEstado(
         $max: { ultimaSecuencia: payload.secuencia },
         $push: { historial: { $each: [entrada], $slice: -30 } },
         $setOnInsert: {
-          shipmentId: payload.shipmentId,
+          // shipmentId ya viaja en $set; repetirlo aca haria que MongoDB
+          // rechace el upsert por conflicto de paths.
           creadoEn: ocurridoEn,
           reprogramaciones: [],
         },

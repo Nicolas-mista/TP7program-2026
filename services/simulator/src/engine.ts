@@ -411,7 +411,11 @@ export class SimulatorEngine {
 
       const deltaSim = deltaReal * this.speed;
       this.simNow += deltaSim;
-      this.acumulador += (this.rate / 60_000) * deltaSim;
+      // SIM_RATE es el volumen de la demo en tiempo real (envios por minuto).
+      // El factor SIM_SPEED solo comprime los tiempos de cada envio; si tambien
+      // multiplicara la tasa, 20/min x 120 serian 40 envios por segundo y los
+      // consumidores no podrian seguir el ritmo.
+      this.acumulador += (this.rate / 60_000) * deltaReal;
       let creados = 0;
       while (this.acumulador >= 1 && creados < 200) {
         this.acumulador -= 1;

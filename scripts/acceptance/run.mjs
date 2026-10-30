@@ -182,9 +182,18 @@ async function main() {
     }
 
     resumen("2. Topics de Kafka");
-    const admin = kafka.admin();
-    await admin.connect();
-    const topics = await admin.listTopics();
+    // Docker Desktop puede resetear una conexion recien creada; reintentamos
+    // para que un hipo de red no invalide toda la aceptacion.
+    const topics = await esperar("topics de Kafka", async () => {
+      const admin = kafka.admin();
+      try {
+        await admin.connect();
+        return await admin.listTopics();
+      } finally {
+        await admin.disconnect().catch(() => undefined);
+      }
+    }, 60_000, 2_000);
+    if (!topics) throw new Error("no se pudo consultar los topics de Kafka");
     const esperados = [
       "envios.estados",
       "envios.promesas",
@@ -196,7 +205,6 @@ async function main() {
     for (const topic of esperados) {
       check(`topic ${topic}`, topics.includes(topic));
     }
-    await admin.disconnect();
 
     const estadoSim = await http(`${SIM}/status`);
     const simStatus = JSON.parse(estadoSim.texto);

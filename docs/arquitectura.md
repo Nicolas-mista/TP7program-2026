@@ -146,6 +146,8 @@ DLQ.
 El simulador comprime una jornada: `SIM_SPEED=120` significa 120 segundos
 simulados por segundo real, o 1 hora simulada cada 30 segundos.
 
+- `SIM_RATE` es el volumen de la demo en tiempo real (20 envíos por minuto);
+  `SIM_SPEED` no multiplica la tasa, solo los tiempos internos de cada envío.
 - Cada evento lleva `ocurridoEn`, fijado por el origen.
 - Cada proceso mantiene un `SimClock` que avanza con el reloj real multiplicado
   por el factor y se sincroniza al observar el `ocurridoEn` de los eventos.

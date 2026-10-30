@@ -13,7 +13,8 @@ actualiza en vivo.
 
 - Docker Desktop (o Docker Engine + Compose v2) con el motor Linux corriendo.
 - Node.js 20 o superior **solo** para desarrollo local, pruebas y scripts.
-- Puertos libres: `3000`, `4000`–`4005`, `9092` y `27017`.
+- Puertos libres: `3000` (o el que definas en `WEB_PORT`), `4000`–`4005`,
+  `9092` y `27017`.
 
 No hace falta instalar dependencias en el host para levantar el stack completo:
 las imágenes ejecutan `npm ci` durante el build.
@@ -35,8 +36,9 @@ varios minutos). Cuando termine:
 | Analítica | <http://localhost:3000/analitica> | Gerencia |
 | Panel de demo | <http://localhost:3000/demo> | Quien presenta |
 
-El simulador arranca solo y publica envíos a 20 por minuto simulado, con el reloj
-acelerado 120× (1 hora simulada = 30 segundos reales).
+El simulador arranca solo y publica envíos a 20 por minuto real, con el reloj
+acelerado 120× (1 hora simulada = 30 segundos reales). La tasa es el volumen de
+la demo; la aceleración solo comprime los tiempos internos de cada envío.
 
 Para seguir el arranque:
 
@@ -195,7 +197,7 @@ npm run build:web
 | `Cannot connect to the Docker daemon` | Docker Desktop no está corriendo. | Iniciá Docker Desktop y reintentá `npm run up`. |
 | La web muestra “No hay conexión con MongoDB” | Mongo todavía no inició el replica set o el contenedor se detuvo. | `docker compose ps`, `docker compose logs mongo mongo-init`. |
 | Los servicios reinician en loop | Kafka no está sano o los topics no se crearon. | `docker compose logs kafka kafka-init`. |
-| `Bind for 0.0.0.0:3000 failed` | Otro proceso usa el puerto. | Liberá el puerto o cambiá el mapeo en `docker-compose.yml`. |
+| `Bind for 0.0.0.0:3000 failed` | Otro proceso usa el puerto. | Liberá el puerto o definí `WEB_PORT` (por ejemplo `WEB_PORT=3001`) en `.env` y volvé a levantar. |
 | Quiero empezar de cero | Quedaron datos o offsets viejos. | `npm run reset` (borra volúmenes). |
 | El replay no completa datos | No hay eventos históricos en `envios.estados`. | Generá tráfico o una ráfaga y reintentá. |
 
@@ -206,8 +208,9 @@ relevantes:
 
 | Variable | Default | Uso |
 | --- | --- | --- |
+| `WEB_PORT` | `3000` | Puerto del host para la web (el contenedor sigue en `3000`). |
 | `SIM_SPEED` | `120` | Factor de aceleración del reloj simulado. |
-| `SIM_RATE` | `20` | Envíos por minuto simulado. |
+| `SIM_RATE` | `20` | Envíos por minuto real (volumen de la demo). |
 | `SIM_SEED` | `42` | Semilla para corridas reproducibles. |
 | `SIM_START_HOUR` | `08` | Hora simulada de arranque. |
 | `SIM_TZ` | `America/Argentina/Buenos_Aires` | Zona horaria de franjas y fechas. |

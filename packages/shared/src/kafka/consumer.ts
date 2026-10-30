@@ -1,6 +1,6 @@
 import type { ClientSession, Db } from "mongodb";
 import { mongoClient } from "../db/client";
-import type { Consumer, EachMessagePayload, Kafka } from "kafkajs";
+import type { Consumer, Kafka, KafkaMessage } from "kafkajs";
 import type { Logger } from "pino";
 import { COL } from "../db/collections";
 import { validarEvento } from "../events/validate";
@@ -9,6 +9,8 @@ import { enviarDlq } from "./dlq";
 import type { EventProducer } from "./producer";
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+/** Cantidad de mensajes procesados entre commits manuales de offset. */
+const COMMIT_CADA = 100;
 
 export interface EventMeta {
   topic: string;
@@ -96,7 +98,30 @@ export class ConsumerService {
     }
     await consumer.run({
       autoCommit: false,
-      eachMessage: (payload) => this.procesar(payload),
+      eachBatchAutoResolve: false,
+      // Procesa las tres particiones en paralelo: con una sola, un consumidor
+      // no alcanza el ritmo del simulador y el lag crece sin limite.
+      partitionsConsumedConcurrently: 3,
+      // El commit sigue siendo manual y posterior a la escritura en MongoDB,
+      // pero se agrupa cada COMMIT_CADA mensajes para no pagar un round-trip
+      // a Kafka por cada evento.
+      eachBatch: async ({ batch, resolveOffset }) => {
+        let ultimoOffset: string | null = null;
+        let sinCommitear = 0;
+        for (const message of batch.messages) {
+          await this.procesar({ topic: batch.topic, partition: batch.partition, message });
+          resolveOffset(message.offset);
+          ultimoOffset = message.offset;
+          sinCommitear += 1;
+          if (sinCommitear >= COMMIT_CADA) {
+            await this.commit(batch.topic, batch.partition, ultimoOffset);
+            sinCommitear = 0;
+          }
+        }
+        if (ultimoOffset && sinCommitear > 0) {
+          await this.commit(batch.topic, batch.partition, ultimoOffset);
+        }
+      },
     });
     logger.info({ grupo: groupId, topics, desdeInicio: this.fromBeginning }, "consumidor iniciado");
   }
@@ -222,7 +247,15 @@ export class ConsumerService {
     await this.registrarProcesado(payload, meta);
   }
 
-  private async procesar({ topic, partition, message }: EachMessagePayload): Promise<void> {
+  private async procesar({
+    topic,
+    partition,
+    message,
+  }: {
+    topic: string;
+    partition: number;
+    message: KafkaMessage;
+  }): Promise<void> {
     const { groupId, logger, producer } = this.opts;
     const meta: EventMeta = {
       topic,
@@ -234,7 +267,6 @@ export class ConsumerService {
 
     try {
       if (!raw.trim()) {
-        await this.commit(topic, partition, message.offset);
         return;
       }
 
@@ -251,7 +283,6 @@ export class ConsumerService {
           error: (error as Error).message,
           original: raw,
         });
-        await this.commit(topic, partition, message.offset);
         return;
       }
 
@@ -266,7 +297,6 @@ export class ConsumerService {
           error: validacion.errores.join(" | "),
           original: raw,
         });
-        await this.commit(topic, partition, message.offset);
         return;
       }
 
@@ -301,8 +331,6 @@ export class ConsumerService {
           });
         }
       }
-
-      await this.commit(topic, partition, message.offset);
     } catch (error) {
       logger.error(
         { error: (error as Error).message, topic, partition, offset: message.offset },
