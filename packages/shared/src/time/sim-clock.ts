@@ -51,6 +51,17 @@ export class SimClock {
     this.inicializado = true;
   }
 
+  /**
+   * Vuelve al estado inicial: el proximo evento observado fija el reloj.
+   * Se usa en los rebuilds para no arrastrar el tiempo de una corrida previa
+   * cuando el simulador reinicia su reloj (reset de demo).
+   */
+  reiniciar(): void {
+    this.lastSimMs = Date.now();
+    this.lastRealMs = Date.now();
+    this.inicializado = false;
+  }
+
   get factor(): number {
     return this.speed;
   }

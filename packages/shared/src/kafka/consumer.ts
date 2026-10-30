@@ -141,6 +141,11 @@ export class ConsumerService {
       logger.info({ grupo: groupId }, "rebuild: deteniendo consumidor");
       await this.stop();
       await this.opts.onBeforeRebuild?.();
+      // El simulador puede haber reiniciado su reloj (reset de demo). Si el
+      // consumidor conserva el tiempo de la corrida anterior, el monitor de SLA
+      // evalua contra un "ahora" futuro y dispara alertas falsas. Al reiniciar
+      // el reloj, el primer evento reprocesado vuelve a fijar la hora.
+      simClock().reiniciar();
       const admin = this.kafka.admin();
       await admin.connect();
       try {

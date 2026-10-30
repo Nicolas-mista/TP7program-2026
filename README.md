@@ -180,8 +180,14 @@ npm run acceptance
 ```
 
 La prueba comprueba salud de los servicios, topics, CU1–CU4, idempotencia ante
-un evento duplicado, DLQ, lag, replay y las vistas web. También se puede correr
-sin Docker la parte estática:
+un evento duplicado, DLQ, lag, replay y las vistas web. Si cambiaste el puerto
+de la web, indicalo con `WEB_URL`:
+
+```bash
+WEB_URL=http://localhost:3001 npm run acceptance
+```
+
+También se puede correr sin Docker la parte estática:
 
 ```bash
 npm install
